@@ -6,8 +6,9 @@ const bodyParser = require("body-parser");
 const ejs = require("ejs");
 const mongoose = require("mongoose");
 const path = require("path");
-const encrypt = require("mongoose-encryption")
-
+const md5 = require("md5");
+const bcrypt = require("bcrypt");
+const saltRounds = 10;
 
 const app = express();
 
@@ -25,7 +26,6 @@ const userSchema = new mongoose.Schema ({
     password: String
 });
 
-userSchema.plugin(encrypt, {secret: process.env.SECRET, encryptedFields:["password"]});
 
 const User = new mongoose.model("User", userSchema);
 
@@ -41,20 +41,41 @@ app.get("/register", function(req, res){
     res.render("register");
 });
 
-app.post("/register", async function(req, res) {
-    const newUser = new User({
-        email: req.body.username,
-        password: req.body.password
-    });
 
+
+
+app.post("/register", async function(req, res) {
     try {
-        await newUser.save();
-        res.render("secrets");
+        bcrypt.hash(req.body.password, saltRounds, async function(err, hash) {
+            if (err) {
+                console.error(err);
+                // Handle the error appropriately
+                return;
+            }
+
+            const newUser = new User({
+                email: req.body.username,
+                password: hash,
+            });
+
+            try {
+                await newUser.save();
+                res.render("secrets");
+            } catch (err) {
+                console.error(err);
+                // Handle the error appropriately
+            }
+        });
     } catch (err) {
         console.error(err);
         // Handle the error appropriately
     }
 });
+
+
+
+
+
 
 app.post("/login", function(req, res){
     const username = req.body.username;
@@ -62,12 +83,14 @@ app.post("/login", function(req, res){
 
     User.findOne({email: username})
         .then(foundUser => {
-            if (foundUser && foundUser.password === password) {
-                res.render("secrets");
+            if (foundUser) {
+                bcrypt.compare(password, foundUser.password, function(err, result) {
+                    if (result == true){
+                        res.render("secrets");
+                    }
+                });
             } else {
-                // Handle case where user is not found or password is incorrect
-                // For example, you can render an error page or send a response indicating authentication failure.
-                res.render("login-failed");
+                console.log("Not User")
             }
         })
         .catch(err => {
