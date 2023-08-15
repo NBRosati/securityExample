@@ -7,8 +7,7 @@ const ejs = require("ejs");
 const mongoose = require("mongoose");
 const path = require("path");
 const md5 = require("md5");
-const bcrypt = require("bcrypt");
-const saltRounds = 10;
+
 
 const app = express();
 
@@ -45,60 +44,14 @@ app.get("/register", function(req, res){
 
 
 app.post("/register", async function(req, res) {
-    try {
-        bcrypt.hash(req.body.password, saltRounds, async function(err, hash) {
-            if (err) {
-                console.error(err);
-                // Handle the error appropriately
-                return;
-            }
-
-            const newUser = new User({
-                email: req.body.username,
-                password: hash,
-            });
-
-            try {
-                await newUser.save();
-                res.render("secrets");
-            } catch (err) {
-                console.error(err);
-                // Handle the error appropriately
-            }
-        });
-    } catch (err) {
-        console.error(err);
-        // Handle the error appropriately
-    }
 });
-
-
 
 
 
 
 app.post("/login", function(req, res){
-    const username = req.body.username;
-    const password = req.body.password;
-
-    User.findOne({email: username})
-        .then(foundUser => {
-            if (foundUser) {
-                bcrypt.compare(password, foundUser.password, function(err, result) {
-                    if (result == true){
-                        res.render("secrets");
-                    }
-                });
-            } else {
-                console.log("Not User")
-            }
-        })
-        .catch(err => {
-            console.log(err);
-            // Handle the error appropriately, for example, render an error page.
-            res.render("error");
-        });
 });
+
 
 
 app.listen(3000, function(){
